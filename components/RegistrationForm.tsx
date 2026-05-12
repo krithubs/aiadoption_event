@@ -69,6 +69,7 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
     if (Object.keys(clientValidation).length > 0) {
       setBusy(false);
       setFieldErrors(clientValidation);
+      focusFirstError(clientValidation);
       setModal({
         title: t("fixHighlighted"),
         message: Object.values(clientValidation).join(" "),
@@ -97,7 +98,10 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
       const errorText = payload.error
         ? translateServerError(payload.error, language)
         : Object.values(translatedErrors || {}).join(" ");
-      if (translatedErrors) setFieldErrors(translatedErrors);
+      if (translatedErrors) {
+        setFieldErrors(translatedErrors);
+        focusFirstError(translatedErrors);
+      }
       setModal({
         title: t("registrationNotSaved"),
         message: errorText || t("registrationNotSaved"),
@@ -117,6 +121,17 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
         kind: "success",
       });
     }
+  }
+
+  function focusFirstError(errors: Record<string, string>) {
+    const firstField = Object.keys(errors)[0];
+    if (!firstField) return;
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(firstField);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (target instanceof HTMLElement) target.focus({ preventScroll: true });
+    });
   }
 
   function clearFieldError(field: string) {
@@ -159,7 +174,7 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
         </div>
         {mode === "edit" ? <span className="status-pill">{initialRegistration?.status}</span> : null}
       </div>
-      <form className="panel-body" onSubmit={submit}>
+      <form className="panel-body" onSubmit={submit} noValidate>
         <div className="form-grid">
           <div className="field">
             <label htmlFor="fullName">{t("fullName")}</label>
