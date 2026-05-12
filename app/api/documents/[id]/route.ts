@@ -1,6 +1,5 @@
-import { readFile } from "fs/promises";
 import { requireAdmin, jsonError } from "@/lib/http";
-import { getUploadPath, listRegistrations } from "@/lib/storage";
+import { listRegistrations, readStoredDocument } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -15,7 +14,7 @@ export async function GET(_request: Request, { params }: Params) {
   const document = registrations.flatMap((registration) => registration.documents).find((item) => item.id === id);
   if (!document) return jsonError("Document not found.", 404);
 
-  const bytes = await readFile(getUploadPath(document.storedName));
+  const bytes = await readStoredDocument(document.storedName);
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": document.mimeType,

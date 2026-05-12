@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes, randomUUID } from "crypto";
+import { get, put } from "@vercel/blob";
 import type { PublicRegistration, Registration, RegistrationInput, RegistrationStatus, SupportingDocument } from "./types";
 import { hashPassword, verifyPassword } from "./security";
 
@@ -8,6 +9,8 @@ const runtimeRoot = process.env.VERCEL ? path.join("/tmp", "cmd-ai-event-registr
 const dataDir = path.join(runtimeRoot, "data");
 const uploadDir = path.join(runtimeRoot, "uploads");
 const dbPath = path.join(runtimeRoot, "data", "registrations.json");
+const blobDbPath = "data/registrations.json";
+const useBlobStore = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 type Database = {
   registrations: Registration[];
@@ -22,6 +25,7 @@ function enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
 }
 
 async function ensureStore(): Promise<void> {
+  if (useBlobStore) return;
   await mkdir(dataDir, { recursive: true });
   await mkdir(uploadDir, { recursive: true });
   try {
@@ -32,12 +36,28 @@ async function ensureStore(): Promise<void> {
 }
 
 async function readDb(): Promise<Database> {
+  if (useBlobStore) {
+    const blob = await get(blobDbPath, { access: "private", useCache: false });
+    if (!blob?.stream) return { registrations: [] };
+    const raw = await new Response(blob.stream).text();
+    return JSON.parse(raw) as Database;
+  }
+
   await ensureStore();
   const raw = await readFile(dbPath, "utf8");
   return JSON.parse(raw) as Database;
 }
 
 async function writeDb(db: Database): Promise<void> {
+  if (useBlobStore) {
+    await put(blobDbPath, JSON.stringify(db, null, 2), {
+      access: "private",
+      allowOverwrite: true,
+      contentType: "application/json",
+    });
+    return;
+  }
+
   await ensureStore();
   const tempPath = `${dbPath}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tempPath, JSON.stringify(db, null, 2));
@@ -62,8 +82,21 @@ export function getUploadPath(storedName: string): string {
   return path.join(uploadDir, storedName);
 }
 
+export async function readStoredDocument(storedName: string): Promise<Buffer> {
+  if (useBlobStore) {
+    const blob = await get(`uploads/${storedName}`, { access: "private", useCache: false });
+    if (!blob?.stream) throw new Error("Document not found.");
+    const bytes = await new Response(blob.stream).arrayBuffer();
+    return Buffer.from(bytes);
+  }
+
+  return readFile(getUploadPath(storedName));
+}
+
 export async function saveUploadedDocuments(files: File[]): Promise<SupportingDocument[]> {
-  await mkdir(uploadDir, { recursive: true });
+  if (!useBlobStore) {
+    await mkdir(uploadDir, { recursive: true });
+  }
   const saved: SupportingDocument[] = [];
 
   for (const file of files) {
@@ -71,7 +104,15 @@ export async function saveUploadedDocuments(files: File[]): Promise<SupportingDo
     const originalName = cleanFileName(file.name);
     const storedName = `${id}-${originalName}`;
     const bytes = Buffer.from(await file.arrayBuffer());
-    await writeFile(getUploadPath(storedName), bytes);
+    if (useBlobStore) {
+      await put(`uploads/${storedName}`, bytes, {
+        access: "private",
+        allowOverwrite: true,
+        contentType: file.type || "application/octet-stream",
+      });
+    } else {
+      await writeFile(getUploadPath(storedName), bytes);
+    }
     saved.push({
       id,
       originalName,
