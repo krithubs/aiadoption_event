@@ -90,41 +90,41 @@ async function makeQrPngBytes(value: string): Promise<Uint8Array> {
 
 export async function makeNameTagPdf(registration: PublicRegistration): Promise<Buffer> {
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([560, 360]);
+  const page = pdf.addPage([420, 620]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const eventName = process.env.EVENT_NAME || "CMD AI Adoption Exam 2026";
+  const eventName = process.env.EVENT_NAME || "CODEMONDAY SUMMIT 2026";
   const lookupUrl = `${appBaseUrl()}/registration/lookup?ref=${encodeURIComponent(registration.referenceCode)}`;
   const qrPng = await pdf.embedPng(await makeQrPngBytes(lookupUrl));
 
-  const cardX = 48;
-  const cardY = 46;
-  const cardW = 464;
-  const cardH = 268;
-  const headerH = 94;
-  const footerH = 44;
+  const cardX = 70;
+  const cardY = 66;
+  const cardW = 280;
+  const cardH = 468;
+  const headerH = 144;
+  const footerH = 56;
   const bodyY = cardY + footerH;
   const headerY = cardY + cardH - headerH;
-  const contentX = cardX + 34;
-  const textW = 292;
-  const qrSize = 58;
+  const contentX = cardX + 30;
+  const textW = cardW - 60;
+  const qrSize = 54;
 
-  page.drawRectangle({ x: 0, y: 0, width: 560, height: 360, color: hexColor("#F2F4F8") });
-  page.drawRectangle({ x: cardX + 7, y: cardY - 8, width: cardW, height: cardH, color: hexColor("#111827"), opacity: 0.18 });
+  page.drawRectangle({ x: 0, y: 0, width: 420, height: 620, color: hexColor("#F2F4F8") });
+  page.drawRectangle({ x: cardX + 8, y: cardY - 9, width: cardW, height: cardH, color: hexColor("#111827"), opacity: 0.18 });
   page.drawRectangle({ x: cardX, y: cardY, width: cardW, height: cardH, color: hexColor("#FFFFFF") });
 
   drawHeaderArtwork(page, cardX, headerY, cardW, headerH);
-  drawCenteredText(page, eventName.toUpperCase(), cardX + cardW / 2, headerY + 44, cardW - 70, 19, 11, bold, "#FFFFFF");
+  drawCenteredText(page, eventName.toUpperCase(), cardX + cardW / 2, headerY + 72, cardW - 46, 16, 9, bold, "#FFFFFF");
 
   page.drawRectangle({ x: cardX, y: bodyY, width: cardW, height: cardH - headerH - footerH, color: hexColor("#F8FAFC") });
   page.drawRectangle({ x: cardX, y: headerY - 1, width: cardW, height: 1.2, color: hexColor("#E5E7EB") });
 
-  drawFittedText(page, fit(registration.fullName, 36), contentX, bodyY + 86, textW, 28, 17, bold, "#111827");
-  drawFittedText(page, fit(registration.organization, 48), contentX, bodyY + 52, textW, 15, 10, regular, "#111827");
-  drawFittedText(page, registration.referenceCode, contentX, bodyY + 24, textW, 8.5, 6.5, regular, "#64748B");
+  drawFittedText(page, fit(registration.fullName, 34), contentX, bodyY + 205, textW, 28, 17, bold, "#111827");
+  drawFittedText(page, fit(registration.organization, 46), contentX, bodyY + 164, textW, 15, 10, regular, "#111827");
+  drawFittedText(page, registration.referenceCode, contentX, bodyY + 36, textW - 76, 8.5, 6.5, regular, "#64748B");
 
-  const qrX = cardX + cardW - 96;
-  const qrY = bodyY + 42;
+  const qrX = cardX + cardW - 92;
+  const qrY = bodyY + 28;
   page.drawRectangle({ x: qrX - 7, y: qrY - 7, width: qrSize + 14, height: qrSize + 14, color: hexColor("#FFFFFF") });
   page.drawImage(qrPng, { x: qrX, y: qrY, width: qrSize, height: qrSize });
 

@@ -38,8 +38,8 @@ describe("security and PDF output", () => {
 
     expect(content.startsWith("%PDF-")).toBe(true);
     expect(parsed.getPageCount()).toBe(1);
-    expect(parsed.getPage(0).getWidth()).toBe(560);
-    expect(parsed.getPage(0).getHeight()).toBe(360);
+    expect(parsed.getPage(0).getWidth()).toBe(420);
+    expect(parsed.getPage(0).getHeight()).toBe(620);
     expect(pdf.byteLength).toBeGreaterThan(1500);
   });
 });
