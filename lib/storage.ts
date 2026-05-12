@@ -4,9 +4,10 @@ import { randomBytes, randomUUID } from "crypto";
 import type { PublicRegistration, Registration, RegistrationInput, RegistrationStatus, SupportingDocument } from "./types";
 import { hashPassword, verifyPassword } from "./security";
 
-const dataDir = path.join(process.cwd(), "data");
-const uploadDir = path.join(process.cwd(), "uploads");
-const dbPath = path.join(process.cwd(), "data", "registrations.json");
+const runtimeRoot = process.env.VERCEL ? path.join("/tmp", "cmd-ai-event-registration") : process.cwd();
+const dataDir = path.join(runtimeRoot, "data");
+const uploadDir = path.join(runtimeRoot, "uploads");
+const dbPath = path.join(runtimeRoot, "data", "registrations.json");
 
 type Database = {
   registrations: Registration[];
