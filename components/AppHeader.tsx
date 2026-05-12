@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, ShieldCheck, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useI18n } from "./LanguageProvider";
 import { useEffect, useRef, useState } from "react";
 
@@ -46,10 +46,8 @@ export function AppHeader() {
     <header className={`topbar ${hidden ? "topbar-hidden" : ""}`}>
       <nav className="nav" aria-label="Primary navigation">
         <Link href="/" className="brand">
-          <span className="brand-mark">
-            <ShieldCheck size={22} aria-hidden />
-          </span>
-          <span>CMD AI Adoption Exam 2026</span>
+          <img className="brand-logo" src="/code-monday-logo.svg" alt="Code Monday" />
+          <span>Summit 2026</span>
         </Link>
         <div className="nav-actions">
           <div className="language-switch" aria-label="Language switcher">

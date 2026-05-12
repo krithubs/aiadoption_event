@@ -1,4 +1,4 @@
-# CMD AI Adoption Exam 2026 - Event Registration
+# CODEMONDAY SUMMIT 2026 - Event Registration
 
 Full-stack Next.js event registration system with user registration, document upload, reference-code lookup, admin review, and PDF name tag download.
 

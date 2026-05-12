@@ -6,7 +6,7 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CMD AI Adoption Exam 2026 Registration",
+  title: "CODEMONDAY SUMMIT 2026 Registration",
   description: "Event registration and admin review system",
 };
 

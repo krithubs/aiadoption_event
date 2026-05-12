@@ -1,0 +1,7 @@
+<svg width="220" height="170" viewBox="0 0 220 170" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Code Monday">
+  <path d="M50 12C34 18 22 31 16 48L38 91L66 12H50Z" fill="#F11E64"/>
+  <path d="M68 12L40 92H72L112 12H68Z" fill="#2F3E8D"/>
+  <path d="M42 34L63 92H39L16 48C20 40 29 34 42 34Z" fill="#B51B78"/>
+  <text x="10" y="132" font-family="Inter, Arial, sans-serif" font-size="43" font-weight="900" fill="#F11E64">CODE</text>
+  <text x="10" y="166" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900" fill="#2F3E8D">MONDAY</text>
+</svg>

@@ -109,15 +109,11 @@ textarea {
   color: var(--text);
 }
 
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  color: #06111f;
-  background: linear-gradient(135deg, #56d7ff 0%, #8d7cff 100%);
-  border-radius: 8px;
-  box-shadow: 0 0 30px rgba(87, 214, 255, 0.36);
+.brand-logo {
+  width: 58px;
+  height: 45px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(87, 214, 255, 0.22));
 }
 
 .nav-links {

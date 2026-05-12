@@ -68,6 +68,14 @@ function drawHeaderArtwork(page: PDFPage, x: number, y: number, width: number, h
   page.drawRectangle({ x, y: y + 14, width, height: 5, color: hexColor("#8D7CFF"), opacity: 0.95 });
 }
 
+function drawCodeMondayLogo(page: PDFPage, x: number, y: number, scale: number, bold: PDFFont) {
+  page.drawRectangle({ x: x + 4 * scale, y: y + 40 * scale, width: 18 * scale, height: 48 * scale, color: hexColor("#F11E64") });
+  page.drawRectangle({ x: x + 24 * scale, y: y + 40 * scale, width: 23 * scale, height: 48 * scale, color: hexColor("#2F3E8D") });
+  page.drawRectangle({ x: x + 9 * scale, y: y + 51 * scale, width: 16 * scale, height: 31 * scale, color: hexColor("#B51B78"), opacity: 0.8 });
+  drawText(page, "CODE", x, y + 19 * scale, 23 * scale, bold, "#F11E64");
+  drawText(page, "MONDAY", x, y, 21 * scale, bold, "#2F3E8D");
+}
+
 function appBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
   if (!configured) return "https://cmd-ai-event-registration.vercel.app";
@@ -93,7 +101,6 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   const page = pdf.addPage([420, 620]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const eventName = process.env.EVENT_NAME || "CODEMONDAY SUMMIT 2026";
   const lookupUrl = `${appBaseUrl()}/registration/lookup?ref=${encodeURIComponent(registration.referenceCode)}`;
   const qrPng = await pdf.embedPng(await makeQrPngBytes(lookupUrl));
 
@@ -114,7 +121,8 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   page.drawRectangle({ x: cardX, y: cardY, width: cardW, height: cardH, color: hexColor("#FFFFFF") });
 
   drawHeaderArtwork(page, cardX, headerY, cardW, headerH);
-  drawCenteredText(page, eventName.toUpperCase(), cardX + cardW / 2, headerY + 72, cardW - 46, 16, 9, bold, "#FFFFFF");
+  drawCodeMondayLogo(page, cardX + 30, headerY + 32, 0.92, bold);
+  drawText(page, "SUMMIT 2026", cardX + 144, headerY + 70, 18, bold, "#FFFFFF");
 
   page.drawRectangle({ x: cardX, y: bodyY, width: cardW, height: cardH - headerH - footerH, color: hexColor("#F8FAFC") });
   page.drawRectangle({ x: cardX, y: headerY - 1, width: cardW, height: 1.2, color: hexColor("#E5E7EB") });
