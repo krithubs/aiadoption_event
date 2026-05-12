@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ClipboardCheck, Pencil } from "lucide-react";
 import type { PublicRegistration } from "@/lib/types";
+import { useI18n } from "./LanguageProvider";
 
 export function CompletionClient() {
+  const { t } = useI18n();
   const [registration, setRegistration] = useState<PublicRegistration | null>(null);
 
   useEffect(() => {
@@ -18,11 +20,11 @@ export function CompletionClient() {
       <section className="panel">
         <div className="panel-body empty-state">
           <div>
-            <h2>No recent submission</h2>
-            <p className="meta">Submit a registration to receive a reference code.</p>
+            <h2>{t("noRecentSubmission")}</h2>
+            <p className="meta">{t("submitToReceiveCode")}</p>
             <div className="actions" style={{ justifyContent: "center" }}>
-              <Link className="button" href="/">
-                Start registration
+              <Link className="button" href="/registration/new">
+                {t("startRegistration")}
               </Link>
             </div>
           </div>
@@ -36,38 +38,40 @@ export function CompletionClient() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Registration received</h2>
-            <p className="meta">Keep this reference code for edits and event support.</p>
+            <h2>{t("registrationReceived")}</h2>
+            <p className="meta">{t("keepReference")}</p>
           </div>
           <ClipboardCheck color="var(--success)" aria-hidden />
         </div>
         <div className="panel-body summary-list">
           <div className="summary-row">
-            <span>Name</span>
+            <span>{t("name")}</span>
             <strong>{registration.fullName}</strong>
           </div>
           <div className="summary-row">
-            <span>Email</span>
+            <span>{t("email")}</span>
             <strong>{registration.email}</strong>
           </div>
           <div className="summary-row">
-            <span>Ticket</span>
+            <span>{t("ticket")}</span>
             <strong>{registration.ticketType}</strong>
           </div>
           <div className="summary-row">
-            <span>Documents</span>
-            <strong>{registration.documents.length} uploaded</strong>
+            <span>{t("supportingDocuments")}</span>
+            <strong>
+              {registration.documents.length} {t("documentsUploaded")}
+            </strong>
           </div>
         </div>
       </section>
       <aside className="reference-box">
-        <div className="eyebrow">Reference code</div>
+        <div className="eyebrow">{t("referenceCode")}</div>
         <div className="reference-code">{registration.referenceCode}</div>
-        <p>Use this code with your password to view or edit your submission.</p>
+        <p>{t("useCodeWithPassword")}</p>
         <div className="actions">
           <Link className="ghost-button" href="/registration/lookup">
             <Pencil size={18} aria-hidden />
-            Manage later
+            {t("manageLater")}
           </Link>
         </div>
       </aside>

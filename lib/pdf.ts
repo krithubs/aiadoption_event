@@ -12,31 +12,15 @@ function hexColor(hex: string): RGB {
 }
 
 function fit(value: string, max: number): string {
-  if (!value) return "None";
-  return value.length > max ? `${value.slice(0, Math.max(0, max - 1))}...` : value;
+  const text = value.trim();
+  if (!text) return "None";
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}...` : text;
 }
 
-function wrap(value: string, maxChars: number, maxLines: number): string[] {
-  const words = (value || "None").split(/\s+/);
-  const lines: string[] = [];
-  let current = "";
-
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word;
-    if (next.length > maxChars && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = next;
-    }
-    if (lines.length === maxLines) break;
-  }
-
-  if (current && lines.length < maxLines) lines.push(current);
-  if (lines.length === maxLines && words.join(" ").length > lines.join(" ").length) {
-    lines[lines.length - 1] = fit(lines[lines.length - 1], maxChars);
-  }
-  return lines;
+function fontSizeToFit(font: PDFFont, text: string, maxWidth: number, preferred: number, minimum: number): number {
+  let size = preferred;
+  while (size > minimum && font.widthOfTextAtSize(text, size) > maxWidth) size -= 0.5;
+  return size;
 }
 
 function drawText(page: PDFPage, text: string, x: number, y: number, size: number, font: PDFFont, color = "#0F172A") {
@@ -49,43 +33,120 @@ function drawText(page: PDFPage, text: string, x: number, y: number, size: numbe
   });
 }
 
-function drawRotatedText(
+function drawFittedText(
   page: PDFPage,
   text: string,
   x: number,
   y: number,
-  size: number,
+  maxWidth: number,
+  preferred: number,
+  minimum: number,
   font: PDFFont,
-  color = "#FFFFFF",
+  color = "#0F172A",
 ) {
-  page.drawText(text, {
-    x,
-    y,
-    size,
-    font,
-    color: hexColor(color),
-    rotate: degrees(90),
+  const size = fontSizeToFit(font, text, maxWidth, preferred, minimum);
+  drawText(page, text, x, y, size, font, color);
+}
+
+function drawCenteredText(
+  page: PDFPage,
+  text: string,
+  centerX: number,
+  y: number,
+  maxWidth: number,
+  preferred: number,
+  minimum: number,
+  font: PDFFont,
+  color = "#0F172A",
+) {
+  const size = fontSizeToFit(font, text, maxWidth, preferred, minimum);
+  const width = font.widthOfTextAtSize(text, size);
+  drawText(page, text, centerX - width / 2, y, size, font, color);
+}
+
+function wrapByWidth(text: string, font: PDFFont, size: number, maxWidth: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(next, size) > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+    if (lines.length === maxLines) break;
+  }
+
+  if (current && lines.length < maxLines) lines.push(current);
+  return lines.slice(0, maxLines);
+}
+
+function drawHeaderArtwork(page: PDFPage, x: number, y: number, width: number, height: number) {
+  page.drawRectangle({ x, y, width, height, color: hexColor("#151A55") });
+  page.drawRectangle({
+    x: x - 30,
+    y: y + 52,
+    width: width + 90,
+    height: 72,
+    color: hexColor("#1777C8"),
+    opacity: 0.72,
+    rotate: degrees(-10),
+  });
+  page.drawRectangle({
+    x: x - 16,
+    y: y - 10,
+    width: width + 70,
+    height: 74,
+    color: hexColor("#E83E8C"),
+    opacity: 0.88,
+    rotate: degrees(8),
+  });
+  page.drawRectangle({
+    x: x + width - 76,
+    y: y + 6,
+    width: 90,
+    height: 82,
+    color: hexColor("#F59B49"),
+    opacity: 0.82,
+    rotate: degrees(-14),
+  });
+  page.drawRectangle({
+    x: x + 74,
+    y: y + 40,
+    width: width,
+    height: 5,
+    color: hexColor("#FFB84D"),
+    opacity: 0.88,
+    rotate: degrees(12),
   });
 }
 
-function drawBarcode(page: PDFPage, value: string, x: number, y: number, width: number, height: number, color = "#FFFFFF") {
-  let seed = Array.from(value).reduce((sum, char) => sum + char.charCodeAt(0), 31);
-  let cursor = x;
+function drawQrPattern(page: PDFPage, value: string, x: number, y: number, size: number) {
+  const modules = 9;
+  const cell = size / modules;
+  let seed = Array.from(value).reduce((sum, char) => sum + char.charCodeAt(0), 29);
 
-  while (cursor < x + width) {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    const barWidth = 1 + (seed % 4);
-    const gap = 1 + ((seed >> 3) % 3);
-    if (cursor + barWidth <= x + width) {
-      page.drawRectangle({
-        x: cursor,
-        y,
-        width: barWidth,
-        height,
-        color: hexColor(color),
-      });
+  page.drawRectangle({ x, y, width: size, height: size, color: hexColor("#FFFFFF") });
+  for (let row = 0; row < modules; row += 1) {
+    for (let col = 0; col < modules; col += 1) {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      const finder =
+        (row < 3 && col < 3) ||
+        (row < 3 && col > modules - 4) ||
+        (row > modules - 4 && col < 3);
+      if (finder || seed % 3 === 0) {
+        page.drawRectangle({
+          x: x + col * cell,
+          y: y + row * cell,
+          width: Math.max(1, cell - 0.6),
+          height: Math.max(1, cell - 0.6),
+          color: hexColor("#111827"),
+        });
+      }
     }
-    cursor += barWidth + gap;
   }
 }
 
@@ -96,63 +157,62 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const eventName = process.env.EVENT_NAME || "CMD AI Adoption Exam 2026";
   const eventDate = process.env.EVENT_DATE || "2026-05-12";
-  const serial = registration.referenceCode.replace(/\D/g, "").slice(-2).padStart(2, "0");
-  const badgeX = 60;
-  const badgeY = 58;
-  const badgeW = 300;
-  const badgeH = 452;
-  const top = badgeY + badgeH;
-  const nameLines = wrap(registration.fullName, 15, 2);
-  const eventLines = wrap(eventName.replace(" 2026", ""), 12, 3);
 
-  page.drawRectangle({ x: 0, y: 0, width: 420, height: 620, color: hexColor("#0A0A0C") });
+  const cardX = 70;
+  const cardY = 86;
+  const cardW = 280;
+  const cardH = 440;
+  const headerH = 145;
+  const headerY = cardY + cardH - headerH;
+  const bodyY = cardY;
+  const bodyH = cardH - headerH;
+  const contentX = cardX + 28;
+  const contentW = cardW - 56;
 
-  page.drawRectangle({ x: 183, y: 501, width: 54, height: 119, color: hexColor("#DDE5EF") });
-  for (let x = 186; x < 236; x += 5) {
-    page.drawRectangle({ x, y: 501, width: 1, height: 119, color: hexColor("#C2CBD9"), opacity: 0.55 });
+  page.drawRectangle({ x: 0, y: 0, width: 420, height: 620, color: hexColor("#101010") });
+
+  page.drawRectangle({ x: 190, y: 503, width: 40, height: 117, color: hexColor("#CAB98E") });
+  for (let x = 195; x < 228; x += 8) {
+    page.drawRectangle({ x, y: 503, width: 1.2, height: 117, color: hexColor("#8B7C5B"), opacity: 0.52 });
   }
-  drawRotatedText(page, "CMD EVENT 2026", 204, 526, 9, bold, "#111B54");
+  page.drawRectangle({ x: 184, y: 492, width: 52, height: 22, color: hexColor("#111111") });
+  page.drawRectangle({ x: 198, y: 498, width: 24, height: 10, color: hexColor("#050505") });
 
-  page.drawRectangle({ x: 178, y: 486, width: 64, height: 20, color: hexColor("#050509") });
-  page.drawRectangle({ x: 185, y: 493, width: 50, height: 6, color: hexColor("#111111") });
+  page.drawRectangle({ x: cardX + 7, y: cardY - 9, width: cardW, height: cardH, color: hexColor("#050505"), opacity: 0.36 });
+  page.drawRectangle({ x: cardX, y: cardY, width: cardW, height: cardH, color: hexColor("#FFFFFF") });
+  drawHeaderArtwork(page, cardX, headerY, cardW, headerH);
 
-  page.drawRectangle({ x: badgeX + 7, y: badgeY - 8, width: badgeW, height: badgeH, color: hexColor("#030306"), opacity: 0.45 });
-  page.drawRectangle({
-    x: badgeX,
-    y: badgeY,
-    width: badgeW,
-    height: badgeH,
-    color: hexColor("#1015D8"),
-    borderColor: hexColor("#1624FF"),
-    borderWidth: 1.2,
-  });
-  page.drawRectangle({ x: badgeX, y: badgeY + 306, width: badgeW, height: 146, color: hexColor("#151CFF"), opacity: 0.95 });
-  page.drawRectangle({ x: badgeX, y: badgeY + 200, width: badgeW, height: 106, color: hexColor("#1117DB"), opacity: 0.95 });
-  page.drawRectangle({ x: badgeX, y: badgeY, width: badgeW, height: 200, color: hexColor("#070BC0"), opacity: 0.98 });
+  page.drawRectangle({ x: cardX + cardW / 2 - 20, y: cardY + cardH - 12, width: 40, height: 8, color: hexColor("#080808") });
+  page.drawRectangle({ x: cardX, y: headerY - 1, width: cardW, height: 1.4, color: hexColor("#E8EAF0") });
 
-  drawBarcode(page, registration.referenceCode, badgeX + 36, top - 73, badgeW - 72, 38);
-  page.drawRectangle({ x: badgeX, y: top - 93, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
-
-  nameLines.forEach((line, index) => {
-    drawText(page, line, badgeX + 36, top - 125 - index * 28, 27, regular, "#FFFFFF");
-  });
-  drawText(page, serial, badgeX + badgeW - 68, top - 126, 26, regular, "#FFFFFF");
-
-  page.drawRectangle({ x: badgeX, y: top - 176, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
-  drawText(page, fit(registration.organization, 28), badgeX + 36, top - 203, 13, regular, "#D9E1FF");
-  drawText(page, registration.ticketType.toUpperCase(), badgeX + badgeW - 98, top - 203, 13, bold, "#FFFFFF");
-  drawText(page, "*", badgeX + badgeW - 54, top - 209, 24, bold, "#F28A2F");
-  page.drawRectangle({ x: badgeX, y: top - 226, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
-
+  const eventLines = wrapByWidth(eventName.toUpperCase(), bold, 16, cardW - 64, 2);
   eventLines.forEach((line, index) => {
-    drawText(page, line.toUpperCase(), badgeX + 36, badgeY + 125 - index * 43, 42, regular, "#FFFFFF");
+    drawCenteredText(page, line, cardX + cardW / 2, headerY + 84 - index * 20, cardW - 64, 16, 11, bold, "#FFFFFF");
   });
-  drawText(page, "2026", badgeX + 36, badgeY + 23, 18, bold, "#C9D4FF");
-  drawText(page, "L", badgeX + 229, badgeY + 70, 52, bold, "#FFFFFF");
-  page.drawRectangle({ x: badgeX + 257, y: badgeY + 83, width: 32, height: 8, color: hexColor("#FFFFFF") });
+  drawCenteredText(page, eventDate, cardX + cardW / 2, headerY + 44, cardW - 84, 10, 8, regular, "#EAF2FF");
 
-  drawText(page, registration.referenceCode, badgeX + 36, badgeY + 12, 7.4, regular, "#BBD0FF");
-  drawText(page, eventDate, badgeX + 247, badgeY + 12, 7.4, regular, "#BBD0FF");
+  page.drawRectangle({ x: cardX, y: bodyY, width: cardW, height: bodyH, color: hexColor("#F8FAFC") });
+  page.drawRectangle({ x: cardX, y: bodyY + bodyH - 1, width: cardW, height: 1, color: hexColor("#E3E8F0") });
+
+  drawFittedText(page, fit(registration.fullName, 34), contentX, bodyY + bodyH - 64, contentW, 27, 17, bold, "#111827");
+  drawFittedText(page, fit(registration.jobTitle, 42), contentX, bodyY + bodyH - 96, contentW, 13, 9, bold, "#1F2937");
+  drawFittedText(page, fit(registration.organization, 46), contentX, bodyY + bodyH - 128, contentW, 14, 9, regular, "#111827");
+
+  drawQrPattern(page, registration.referenceCode, cardX + cardW - 64, bodyY + 130, 34);
+  drawFittedText(page, registration.referenceCode, contentX, bodyY + 126, 160, 8.5, 6.5, regular, "#64748B");
+
+  const roleText = registration.ticketType.toUpperCase();
+  const roleW = Math.max(92, Math.min(164, bold.widthOfTextAtSize(roleText, 14) + 22));
+  page.drawRectangle({
+    x: contentX,
+    y: bodyY + 36,
+    width: roleW,
+    height: 34,
+    borderColor: hexColor("#111827"),
+    borderWidth: 1.6,
+    color: hexColor("#F8FAFC"),
+  });
+  drawCenteredText(page, roleText, contentX + roleW / 2, bodyY + 46, roleW - 14, 14, 9, bold, "#111827");
 
   const bytes = await pdf.save();
   return Buffer.from(bytes);

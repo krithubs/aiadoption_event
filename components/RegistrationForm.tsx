@@ -35,6 +35,7 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [documentMode, setDocumentMode] = useState("append");
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedDocumentNames, setSelectedDocumentNames] = useState<string[]>([]);
 
   const defaults = useMemo(
     () => ({
@@ -161,6 +162,11 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
       </span>
     ) : null;
   }
+
+  const selectedDocumentSummary =
+    selectedDocumentNames.length > 0
+      ? `${selectedDocumentNames.length} ${t("filesSelected")}`
+      : t("clickToChoose");
 
   return (
     <section className="panel" aria-label={mode === "create" ? t("attendeeDetails") : t("editSubmission")}>
@@ -308,16 +314,42 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
           </div>
           <div className="field full">
             <label htmlFor="documents">{t("documents")}</label>
-            <input
-              id="documents"
-              name="documents"
-              type="file"
-              multiple
-              required={mode === "create"}
-              accept=".pdf,.png,.jpg,.jpeg,.docx,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={() => clearFieldError("documents")}
-              {...errorProps("documents")}
-            />
+            <div className={`file-picker ${fieldErrors.documents ? "invalid-field" : ""}`}>
+              <input
+                className="file-native-input"
+                id="documents"
+                name="documents"
+                type="file"
+                multiple
+                required={mode === "create"}
+                accept=".pdf,.png,.jpg,.jpeg,.docx,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => {
+                  setSelectedDocumentNames(Array.from(event.currentTarget.files || []).map((file) => file.name));
+                  clearFieldError("documents");
+                }}
+                aria-invalid={Boolean(fieldErrors.documents)}
+                aria-describedby={fieldErrors.documents ? "documents-error" : undefined}
+              />
+              <div className="file-upload-field" aria-hidden="true">
+                <span className="file-upload-icon">
+                  <FileUp size={19} />
+                </span>
+                <span className="file-upload-copy">
+                  <strong>{t("uploadFiles")}</strong>
+                  <span>{selectedDocumentSummary}</span>
+                </span>
+                <span className="file-upload-action">{t("documents")}</span>
+              </div>
+            </div>
+            {selectedDocumentNames.length > 0 ? (
+              <div className="file-name-list" aria-label="Selected files">
+                {selectedDocumentNames.map((name, index) => (
+                  <span className="file-name-chip" key={`${name}-${index}`}>
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <span className="hint">{t("documentHint")}</span>
             {errorText("documents")}
           </div>
@@ -388,7 +420,7 @@ function validateClientForm(formData: FormData, translate: (message: string) => 
 
   const files = formData.getAll("documents").filter((item): item is File => item instanceof File && item.size > 0);
   if (files.length === 0 && formData.get("documentMode") !== "append") {
-    errors.documents = translate("Upload at least one supporting document.");
+    errors.documents = translate("Choose at least one file.");
   }
 
   for (const file of files) {

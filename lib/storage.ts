@@ -167,6 +167,11 @@ export async function authenticateRegistration(referenceCodeValue: string, passw
   return (await verifyPassword(password, registration.passwordHash)) ? withoutPassword(registration) : null;
 }
 
+export async function registrationReferenceExists(referenceCodeValue: string): Promise<boolean> {
+  const db = await readDb();
+  return db.registrations.some((item) => item.referenceCode === referenceCodeValue.trim().toUpperCase());
+}
+
 export async function updateRegistration(
   referenceCodeValue: string,
   password: string,

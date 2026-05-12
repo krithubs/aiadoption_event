@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RegistrationForm } from "@/components/RegistrationForm";
 import type { PublicRegistration } from "@/lib/types";
+import { useI18n } from "./LanguageProvider";
 
 export function EditRegistrationClient() {
+  const { t } = useI18n();
   const [registration, setRegistration] = useState<PublicRegistration | null>(null);
   const [password, setPassword] = useState("");
 
@@ -21,11 +23,11 @@ export function EditRegistrationClient() {
       <section className="panel">
         <div className="panel-body empty-state">
           <div>
-            <h2>No registration loaded</h2>
-            <p className="meta">Use your reference code and password before editing.</p>
+            <h2>{t("noRegistrationLoaded")}</h2>
+            <p className="meta">{t("useReferenceBeforeEditing")}</p>
             <div className="actions" style={{ justifyContent: "center" }}>
               <Link className="button" href="/registration/lookup">
-                Go to My Registration
+                {t("goToMyRegistration")}
               </Link>
             </div>
           </div>
@@ -37,9 +39,9 @@ export function EditRegistrationClient() {
   return (
     <div className="hero">
       <section className="intro">
-        <div className="eyebrow">Attendee portal</div>
-        <h1>Review and update your submission</h1>
-        <p className="lead">You can change details, add documents, or replace the full document set.</p>
+        <div className="eyebrow">{t("editEyebrow")}</div>
+        <h1>{t("editTitle")}</h1>
+        <p className="lead">{t("editLead")}</p>
         <div className="documents">
           {registration.documents.map((document) => (
             <div className="document-row" key={document.id}>

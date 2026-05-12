@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!validation.ok) return NextResponse.json({ errors: validation.errors }, { status: 422 });
 
   const files = filesFromFormData(formData);
-  if (files.length === 0) return jsonError("Upload at least one supporting document.", 422);
+  if (files.length === 0) return jsonError("Choose at least one file.", 422);
   for (const file of files) {
     const fileError = assertAllowedDocument(file);
     if (fileError) return jsonError(fileError, 422);

@@ -10,6 +10,10 @@ import { useI18n } from "./LanguageProvider";
 
 const statusOptions: RegistrationStatus[] = ["submitted", "reviewing", "approved"];
 
+function statusLabel(status: RegistrationStatus, t: (key: string) => string): string {
+  return t(`status${status[0].toUpperCase()}${status.slice(1)}`);
+}
+
 export function AdminConsole() {
   const router = useRouter();
   const { t } = useI18n();
@@ -52,8 +56,8 @@ export function AdminConsole() {
 
     if (!response.ok) {
       setModal({
-        title: "Unable to load registrations",
-        message: payload.error || "Please try again.",
+        title: t("unableLoadRegistrations"),
+        message: t("tryAgain"),
         kind: "error",
       });
       return;
@@ -75,7 +79,7 @@ export function AdminConsole() {
     if (!response.ok) {
       setModal({
         title: t("statusNotUpdated"),
-        message: payload.error || "Please try again.",
+        message: t("tryAgain"),
         kind: "error",
       });
       return;
@@ -84,7 +88,7 @@ export function AdminConsole() {
     setRegistrations((current) => current.map((item) => (item.id === payload.registration.id ? payload.registration : item)));
     setModal({
       title: t("statusUpdated"),
-      message: `${payload.registration.fullName} is now marked ${payload.registration.status}.`,
+      message: `${payload.registration.fullName} ${t("statusUpdatedTo")} ${statusLabel(payload.registration.status, t)}.`,
       kind: "success",
     });
   }
@@ -151,21 +155,21 @@ export function AdminConsole() {
             {!busy ? (
               <div className="list">
                 {filtered.map((registration) => (
-                <button
-                  className={`list-button ${selected?.id === registration.id ? "active" : ""}`}
-                  type="button"
-                  key={registration.id}
-                  onClick={() => setSelectedId(registration.id)}
-                >
-                  <div className="list-top">
-                    <strong>{registration.fullName}</strong>
-                    <span className="status-pill">{registration.status}</span>
-                  </div>
-                  <div className="meta">{registration.referenceCode}</div>
-                  <div className="meta">
-                    {registration.organization} · {registration.ticketType}
-                  </div>
-                </button>
+                  <button
+                    className={`list-button ${selected?.id === registration.id ? "active" : ""}`}
+                    type="button"
+                    key={registration.id}
+                    onClick={() => setSelectedId(registration.id)}
+                  >
+                    <div className="list-top">
+                      <strong>{registration.fullName}</strong>
+                      <span className="status-pill">{statusLabel(registration.status, t)}</span>
+                    </div>
+                    <div className="meta">{registration.referenceCode}</div>
+                    <div className="meta">
+                      {registration.organization} · {registration.ticketType}
+                    </div>
+                  </button>
                 ))}
               </div>
             ) : null}
@@ -192,53 +196,46 @@ export function AdminConsole() {
               <div className="empty-state">{t("selectToReview")}</div>
             ) : (
               <>
-                <div className="summary-list">
-                  <div className="summary-row">
-                    <span>{t("name")}</span>
-                    <strong>{selected.fullName}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("email")}</span>
-                    <strong>{selected.email}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("phone")}</span>
-                    <strong>{selected.phone}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("organization")}</span>
-                    <strong>{selected.organization}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("jobTitle")}</span>
-                    <strong>{selected.jobTitle}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("ticket")}</span>
-                    <strong>{selected.ticketType}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("dietary")}</span>
-                    <strong>{selected.dietaryNeeds || t("none")}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("accessibility")}</span>
-                    <strong>{selected.accessibilityNeeds || t("none")}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>{t("notes")}</span>
-                    <strong>{selected.notes || t("none")}</strong>
-                  </div>
-                </div>
+                <div className="profile-sections">
+                  <section className="profile-section">
+                    <h3>{t("personalInfo")}</h3>
+                    <div className="profile-field-grid">
+                      <ProfileField label={t("name")} value={selected.fullName} />
+                      <ProfileField label={t("email")} value={selected.email} />
+                      <ProfileField label={t("phone")} value={selected.phone} />
+                    </div>
+                  </section>
 
-                <div className="field" style={{ marginTop: 20 }}>
-                  <label htmlFor="status">{t("reviewStatus")}</label>
-                  <CustomDropdown
-                    id="status"
-                    value={selected.status}
-                    options={statusOptions.map((status) => ({ value: status, label: status, tone: status }))}
-                    onChange={(value) => updateStatus(value as RegistrationStatus)}
-                  />
+                  <section className="profile-section">
+                    <h3>{t("eventInfo")}</h3>
+                    <div className="profile-field-grid">
+                      <ProfileField label={t("organization")} value={selected.organization} />
+                      <ProfileField label={t("jobTitle")} value={selected.jobTitle} />
+                      <ProfileField label={t("ticket")} value={selected.ticketType} />
+                    </div>
+                  </section>
+
+                  <section className="profile-section">
+                    <h3>{t("attendeeNeeds")}</h3>
+                    <div className="profile-field-grid">
+                      <ProfileField label={t("dietary")} value={selected.dietaryNeeds || t("none")} />
+                      <ProfileField label={t("accessibility")} value={selected.accessibilityNeeds || t("none")} />
+                      <ProfileField label={t("notes")} value={selected.notes || t("none")} wide />
+                    </div>
+                  </section>
+
+                  <section className="profile-section">
+                    <h3>{t("reviewControl")}</h3>
+                    <div className="field">
+                      <label htmlFor="status">{t("reviewStatus")}</label>
+                      <CustomDropdown
+                        id="status"
+                        value={selected.status}
+                        options={statusOptions.map((status) => ({ value: status, label: statusLabel(status, t), tone: status }))}
+                        onChange={(value) => updateStatus(value as RegistrationStatus)}
+                      />
+                    </div>
+                  </section>
                 </div>
 
                 <h3 style={{ marginTop: 24 }}>{t("supportingDocuments")}</h3>
@@ -263,6 +260,15 @@ export function AdminConsole() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function ProfileField({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={`profile-field ${wide ? "wide" : ""}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
