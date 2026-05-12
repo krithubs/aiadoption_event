@@ -60,11 +60,12 @@ function drawCenteredText(
 }
 
 function drawHeaderArtwork(page: PDFPage, x: number, y: number, width: number, height: number) {
-  page.drawRectangle({ x, y, width, height, color: hexColor("#141B55") });
-  page.drawRectangle({ x, y: y + 58, width, height: 36, color: hexColor("#0B7CC5"), opacity: 0.65 });
-  page.drawRectangle({ x, y: y + 28, width, height: 44, color: hexColor("#CF2F86"), opacity: 0.86 });
-  page.drawRectangle({ x: x + width - 92, y: y + 28, width: 118, height: 66, color: hexColor("#F59B49"), opacity: 0.84 });
-  page.drawRectangle({ x, y: y + 22, width, height: 7, color: hexColor("#F5A642"), opacity: 0.9 });
+  page.drawRectangle({ x, y, width, height, color: hexColor("#10164D") });
+  page.drawRectangle({ x, y: y + 56, width: width * 0.72, height: 38, color: hexColor("#1F63B7"), opacity: 0.72 });
+  page.drawRectangle({ x: x + width * 0.52, y: y + 48, width: width * 0.48, height: 46, color: hexColor("#6D5DF6"), opacity: 0.5 });
+  page.drawRectangle({ x, y: y + 18, width, height: 46, color: hexColor("#B3339B"), opacity: 0.82 });
+  page.drawRectangle({ x: x + width * 0.64, y: y + 18, width: width * 0.36, height: 46, color: hexColor("#56D7FF"), opacity: 0.22 });
+  page.drawRectangle({ x, y: y + 14, width, height: 5, color: hexColor("#8D7CFF"), opacity: 0.95 });
 }
 
 function appBaseUrl(): string {
