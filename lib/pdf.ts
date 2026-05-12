@@ -1,6 +1,4 @@
 import QRCode from "qrcode";
-import { readFile } from "fs/promises";
-import path from "path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PDFFont, PDFPage, RGB } from "pdf-lib";
 import type { PublicRegistration } from "./types";
@@ -75,10 +73,6 @@ async function makeQrPngBytes(value: string): Promise<Uint8Array> {
   return Uint8Array.from(Buffer.from(dataUrl.split(",")[1], "base64"));
 }
 
-async function readLogoPng(): Promise<Uint8Array> {
-  return readFile(path.join(process.cwd(), "public", "code-monday-logo.png"));
-}
-
 export async function makeNameTagPdf(registration: PublicRegistration): Promise<Buffer> {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([420, 620]);
@@ -86,7 +80,6 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const lookupUrl = `${appBaseUrl()}/registration/lookup?ref=${encodeURIComponent(registration.referenceCode)}`;
   const qrPng = await pdf.embedPng(await makeQrPngBytes(lookupUrl));
-  const logoPng = await pdf.embedPng(await readLogoPng());
 
   const cardX = 70;
   const cardY = 66;
@@ -104,10 +97,8 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   page.drawRectangle({ x: cardX, y: cardY, width: cardW, height: cardH, color: hexColor("#FFFFFF") });
 
   drawHeaderArtwork(page, cardX, headerY, cardW, headerH);
-  page.drawRectangle({ x: cardX + 24, y: headerY + 24, width: 104, height: 88, color: hexColor("#FFFFFF"), opacity: 0.94 });
-  page.drawImage(logoPng, { x: cardX + 34, y: headerY + 32, width: 84, height: 65 });
-  drawText(page, "SUMMIT", cardX + 146, headerY + 72, 23, bold, "#FFFFFF");
-  drawText(page, "2026", cardX + 146, headerY + 47, 19, bold, "#FFFFFF");
+  drawCenteredText(page, "CODEMONDAY", cardX + cardW / 2, headerY + 75, cardW - 42, 24, 14, bold, "#FFFFFF");
+  drawCenteredText(page, "SUMMIT 2026", cardX + cardW / 2, headerY + 47, cardW - 42, 20, 12, bold, "#FFFFFF");
 
   page.drawRectangle({ x: cardX, y: bodyY, width: cardW, height: cardH - headerH - footerH, color: hexColor("#F8FAFC") });
   page.drawRectangle({ x: cardX, y: headerY - 1, width: cardW, height: 1.2, color: hexColor("#E5E7EB") });
