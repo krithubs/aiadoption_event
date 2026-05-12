@@ -70,11 +70,13 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
       setBusy(false);
       setFieldErrors(clientValidation);
       focusFirstError(clientValidation);
-      setModal({
-        title: t("fixHighlighted"),
-        message: Object.values(clientValidation).join(" "),
-        kind: "error",
-      });
+      if (shouldShowValidationModal(formData)) {
+        setModal({
+          title: t("fixHighlighted"),
+          message: Object.values(clientValidation).join(" "),
+          kind: "error",
+        });
+      }
       return;
     }
 
@@ -398,4 +400,22 @@ function validateClientForm(formData: FormData, translate: (message: string) => 
   }
 
   return errors;
+}
+
+function shouldShowValidationModal(formData: FormData): boolean {
+  const textFields = [
+    "fullName",
+    "email",
+    "phone",
+    "organization",
+    "jobTitle",
+    "dietaryNeeds",
+    "accessibilityNeeds",
+    "notes",
+    "password",
+  ];
+  const hasTextValue = textFields.some((field) => String(formData.get(field) || "").trim().length > 0);
+  const hasDocument = formData.getAll("documents").some((item) => item instanceof File && item.size > 0);
+
+  return hasTextValue || hasDocument;
 }
