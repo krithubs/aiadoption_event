@@ -1,7 +1,7 @@
 import type { RegistrationInput, RegistrationStatus } from "./types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[0-9+()\-\s]{7,24}$/;
+const PHONE_RE = /^\d{9,15}$/;
 const TICKET_TYPES = new Set(["General", "VIP", "Speaker", "Sponsor", "Staff"]);
 const STATUSES: RegistrationStatus[] = ["submitted", "reviewing", "approved"];
 
@@ -31,13 +31,23 @@ export function registrationInputFromFormData(formData: FormData): RegistrationI
 export function validateRegistrationInput(input: RegistrationInput): ValidationResult<RegistrationInput> {
   const errors: Record<string, string> = {};
 
-  if (input.fullName.length < 2) errors.fullName = "Full name is required.";
-  if (!EMAIL_RE.test(input.email)) errors.email = "Enter a valid email address.";
-  if (!PHONE_RE.test(input.phone)) errors.phone = "Enter a valid phone number.";
-  if (input.organization.length < 2) errors.organization = "Organization is required.";
-  if (input.jobTitle.length < 2) errors.jobTitle = "Job title is required.";
+  if (input.fullName.length < 2) errors.fullName = "Enter the attendee full name.";
+  if (input.fullName.length > 80) errors.fullName = "Full name must be 80 characters or less.";
+  if (!EMAIL_RE.test(input.email)) errors.email = "Enter a valid email address, for example name@example.com.";
+  if (!PHONE_RE.test(input.phone)) errors.phone = "Phone must contain numbers only, 9 to 15 digits.";
+  if (input.organization.length < 2) errors.organization = "Enter the attendee organization.";
+  if (input.organization.length > 100) errors.organization = "Organization must be 100 characters or less.";
+  if (input.jobTitle.length < 2) errors.jobTitle = "Enter the attendee job title.";
+  if (input.jobTitle.length > 80) errors.jobTitle = "Job title must be 80 characters or less.";
   if (!TICKET_TYPES.has(input.ticketType)) errors.ticketType = "Choose a valid ticket type.";
   if (input.password.length < 8) errors.password = "Password must be at least 8 characters.";
+  else if (!/[A-Za-z]/.test(input.password) || !/\d/.test(input.password)) {
+    errors.password = "Password must include at least one letter and one number.";
+  }
+  if (input.dietaryNeeds.length > 120) errors.dietaryNeeds = "Dietary needs must be 120 characters or less.";
+  if (input.accessibilityNeeds.length > 120) {
+    errors.accessibilityNeeds = "Accessibility needs must be 120 characters or less.";
+  }
   if (input.notes.length > 800) errors.notes = "Notes must be 800 characters or less.";
 
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: input };

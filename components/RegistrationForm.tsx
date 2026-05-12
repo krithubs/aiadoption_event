@@ -2,9 +2,12 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileUp, Save, Send } from "lucide-react";
+import { Eye, EyeOff, FileUp, Save, Send } from "lucide-react";
 import type { PublicRegistration } from "@/lib/types";
+import { assertAllowedDocument, registrationInputFromFormData, validateRegistrationInput } from "@/lib/validation";
 import { Modal, type ModalState } from "./Modal";
+import { CustomDropdown } from "./CustomDropdown";
+import { translateServerError, useI18n } from "./LanguageProvider";
 
 type Props = {
   mode: "create" | "edit";
@@ -14,6 +17,10 @@ type Props = {
 };
 
 const ticketTypes = ["General", "VIP", "Speaker", "Sponsor", "Staff"];
+const documentModeOptions = [
+  { value: "append", labelKey: "appendDocuments" },
+  { value: "replace", labelKey: "replaceDocuments" },
+];
 
 function valueFor(registration: PublicRegistration | undefined, key: keyof PublicRegistration): string {
   const value = registration?.[key];
@@ -22,9 +29,12 @@ function valueFor(registration: PublicRegistration | undefined, key: keyof Publi
 
 export function RegistrationForm({ mode, initialRegistration, referenceCode, password }: Props) {
   const router = useRouter();
+  const { language, t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [documentMode, setDocumentMode] = useState("append");
+  const [showPassword, setShowPassword] = useState(false);
 
   const defaults = useMemo(
     () => ({
@@ -40,17 +50,31 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
     }),
     [initialRegistration],
   );
+  const [ticketType, setTicketType] = useState(defaults.ticketType);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setModal(null);
+    setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
     if (mode === "edit") {
       formData.set("referenceCode", referenceCode || "");
       formData.set("password", password || "");
       formData.set("documentMode", documentMode);
+    }
+
+    const clientValidation = validateClientForm(formData, (message) => translateServerError(message, language));
+    if (Object.keys(clientValidation).length > 0) {
+      setBusy(false);
+      setFieldErrors(clientValidation);
+      setModal({
+        title: t("fixHighlighted"),
+        message: Object.values(clientValidation).join(" "),
+        kind: "error",
+      });
+      return;
     }
 
     const response = await fetch("/api/registration", {
@@ -62,10 +86,21 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
     setBusy(false);
 
     if (!response.ok) {
-      const errorText = payload.error || Object.values(payload.errors || {}).join(" ");
+      const translatedErrors = payload.errors
+        ? Object.fromEntries(
+            Object.entries(payload.errors as Record<string, string>).map(([field, message]) => [
+              field,
+              translateServerError(message, language),
+            ]),
+          )
+        : null;
+      const errorText = payload.error
+        ? translateServerError(payload.error, language)
+        : Object.values(translatedErrors || {}).join(" ");
+      if (translatedErrors) setFieldErrors(translatedErrors);
       setModal({
-        title: "Registration not saved",
-        message: errorText || "Unable to save registration.",
+        title: t("registrationNotSaved"),
+        message: errorText || t("registrationNotSaved"),
         kind: "error",
       });
       return;
@@ -77,22 +112,48 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
     } else {
       sessionStorage.setItem("cmd-edit-registration", JSON.stringify(payload.registration));
       setModal({
-        title: "Registration updated",
-        message: "Your latest details and document changes have been saved.",
+        title: t("registrationUpdated"),
+        message: t("updateSaved"),
         kind: "success",
       });
     }
   }
 
+  function clearFieldError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function errorProps(field: string) {
+    const message = fieldErrors[field];
+    return {
+      "aria-invalid": Boolean(message),
+      "aria-describedby": message ? `${field}-error` : undefined,
+      className: message ? "invalid-field" : undefined,
+    };
+  }
+
+  function errorText(field: string) {
+    return fieldErrors[field] ? (
+      <span className="field-error" id={`${field}-error`}>
+        {fieldErrors[field]}
+      </span>
+    ) : null;
+  }
+
   return (
-    <section className="panel" aria-label={mode === "create" ? "Registration form" : "Edit registration form"}>
+    <section className="panel" aria-label={mode === "create" ? t("attendeeDetails") : t("editSubmission")}>
       <Modal modal={modal} onClose={() => setModal(null)} />
       <div className="panel-header">
         <div>
-          <h2>{mode === "create" ? "Attendee details" : "Edit submission"}</h2>
+          <h2>{mode === "create" ? t("attendeeDetails") : t("editSubmission")}</h2>
           <p className="meta">
             {mode === "create"
-              ? "All required fields are used for admission, name tag, and event communications."
+              ? t("requiredUsage")
               : `Reference ${referenceCode}`}
           </p>
         </div>
@@ -101,52 +162,135 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
       <form className="panel-body" onSubmit={submit}>
         <div className="form-grid">
           <div className="field">
-            <label htmlFor="fullName">Full name</label>
-            <input id="fullName" name="fullName" defaultValue={defaults.fullName} required minLength={2} />
+            <label htmlFor="fullName">{t("fullName")}</label>
+            <input
+              id="fullName"
+              name="fullName"
+              defaultValue={defaults.fullName}
+              required
+              minLength={2}
+              maxLength={80}
+              onChange={() => clearFieldError("fullName")}
+              {...errorProps("fullName")}
+            />
+            {errorText("fullName")}
           </div>
           <div className="field">
-            <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" defaultValue={defaults.email} required />
+            <label htmlFor="email">{t("email")}</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              defaultValue={defaults.email}
+              required
+              onChange={() => clearFieldError("email")}
+              {...errorProps("email")}
+            />
+            {errorText("email")}
           </div>
           <div className="field">
-            <label htmlFor="phone">Phone</label>
-            <input id="phone" name="phone" defaultValue={defaults.phone} required />
+            <label htmlFor="phone">{t("phone")}</label>
+            <input
+              id="phone"
+              name="phone"
+              defaultValue={defaults.phone.replace(/\D/g, "")}
+              required
+              inputMode="numeric"
+              pattern="[0-9]{9,15}"
+              minLength={9}
+              maxLength={15}
+              placeholder="0812345678"
+              onInput={(event) => {
+                event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                clearFieldError("phone");
+              }}
+              {...errorProps("phone")}
+            />
+            <span className="hint">{t("phoneHint")}</span>
+            {errorText("phone")}
           </div>
           <div className="field">
-            <label htmlFor="organization">Organization</label>
-            <input id="organization" name="organization" defaultValue={defaults.organization} required />
+            <label htmlFor="organization">{t("organization")}</label>
+            <input
+              id="organization"
+              name="organization"
+              defaultValue={defaults.organization}
+              required
+              maxLength={100}
+              onChange={() => clearFieldError("organization")}
+              {...errorProps("organization")}
+            />
+            {errorText("organization")}
           </div>
           <div className="field">
-            <label htmlFor="jobTitle">Job title</label>
-            <input id="jobTitle" name="jobTitle" defaultValue={defaults.jobTitle} required />
+            <label htmlFor="jobTitle">{t("jobTitle")}</label>
+            <input
+              id="jobTitle"
+              name="jobTitle"
+              defaultValue={defaults.jobTitle}
+              required
+              maxLength={80}
+              onChange={() => clearFieldError("jobTitle")}
+              {...errorProps("jobTitle")}
+            />
+            {errorText("jobTitle")}
           </div>
           <div className="field">
-            <label htmlFor="ticketType">Ticket type</label>
-            <select id="ticketType" name="ticketType" defaultValue={defaults.ticketType}>
-              {ticketTypes.map((ticketType) => (
-                <option key={ticketType}>{ticketType}</option>
-              ))}
-            </select>
+            <label htmlFor="ticketType">{t("ticketType")}</label>
+            <CustomDropdown
+              id="ticketType"
+              name="ticketType"
+              value={ticketType}
+              options={ticketTypes.map((item) => ({ value: item, label: item }))}
+              onChange={(nextValue) => {
+                setTicketType(nextValue);
+                clearFieldError("ticketType");
+              }}
+              invalid={Boolean(fieldErrors.ticketType)}
+              describedBy={fieldErrors.ticketType ? "ticketType-error" : undefined}
+            />
+            {errorText("ticketType")}
           </div>
           <div className="field">
-            <label htmlFor="dietaryNeeds">Dietary needs</label>
-            <input id="dietaryNeeds" name="dietaryNeeds" defaultValue={defaults.dietaryNeeds} placeholder="None" />
+            <label htmlFor="dietaryNeeds">{t("dietaryNeeds")}</label>
+            <input
+              id="dietaryNeeds"
+              name="dietaryNeeds"
+              defaultValue={defaults.dietaryNeeds}
+              placeholder={t("none")}
+              maxLength={120}
+              onChange={() => clearFieldError("dietaryNeeds")}
+              {...errorProps("dietaryNeeds")}
+            />
+            {errorText("dietaryNeeds")}
           </div>
           <div className="field">
-            <label htmlFor="accessibilityNeeds">Accessibility needs</label>
+            <label htmlFor="accessibilityNeeds">{t("accessibilityNeeds")}</label>
             <input
               id="accessibilityNeeds"
               name="accessibilityNeeds"
               defaultValue={defaults.accessibilityNeeds}
-              placeholder="None"
+              placeholder={t("none")}
+              maxLength={120}
+              onChange={() => clearFieldError("accessibilityNeeds")}
+              {...errorProps("accessibilityNeeds")}
             />
+            {errorText("accessibilityNeeds")}
           </div>
           <div className="field full">
-            <label htmlFor="notes">Additional notes</label>
-            <textarea id="notes" name="notes" defaultValue={defaults.notes} maxLength={800} />
+            <label htmlFor="notes">{t("notes")}</label>
+            <textarea
+              id="notes"
+              name="notes"
+              defaultValue={defaults.notes}
+              maxLength={800}
+              onChange={() => clearFieldError("notes")}
+              {...errorProps("notes")}
+            />
+            {errorText("notes")}
           </div>
           <div className="field full">
-            <label htmlFor="documents">Supporting documents</label>
+            <label htmlFor="documents">{t("documents")}</label>
             <input
               id="documents"
               name="documents"
@@ -154,42 +298,89 @@ export function RegistrationForm({ mode, initialRegistration, referenceCode, pas
               multiple
               required={mode === "create"}
               accept=".pdf,.png,.jpg,.jpeg,.docx,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={() => clearFieldError("documents")}
+              {...errorProps("documents")}
             />
-            <span className="hint">Upload PDF, PNG, JPG, or DOCX files. Each file can be up to 8 MB.</span>
+            <span className="hint">{t("documentHint")}</span>
+            {errorText("documents")}
           </div>
           {mode === "edit" ? (
             <div className="field full">
-              <label htmlFor="documentMode">Document update mode</label>
-              <select id="documentMode" value={documentMode} onChange={(event) => setDocumentMode(event.target.value)}>
-                <option value="append">Add uploaded documents to current file set</option>
-                <option value="replace">Replace current documents with uploaded files</option>
-              </select>
+              <label htmlFor="documentMode">{t("documentMode")}</label>
+              <CustomDropdown
+                id="documentMode"
+                name="documentMode"
+                value={documentMode}
+                options={documentModeOptions.map((item) => ({ value: item.value, label: t(item.labelKey) }))}
+                onChange={setDocumentMode}
+              />
             </div>
           ) : null}
           <div className="field full">
-            <label htmlFor="password">{mode === "create" ? "Set password" : "Confirm password"}</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              minLength={8}
-              required
-              defaultValue={mode === "edit" ? password : ""}
-              autoComplete="new-password"
-            />
-            <span className="hint">Use this password with your reference code to return and edit.</span>
+            <label htmlFor="password">{mode === "create" ? t("setPassword") : t("confirmPassword")}</label>
+            <div className="password-control">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                minLength={8}
+                required
+                defaultValue={mode === "edit" ? password : ""}
+                autoComplete="new-password"
+                onChange={() => clearFieldError("password")}
+                {...errorProps("password")}
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+              >
+                {showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+                <span>{showPassword ? t("hidePassword") : t("showPassword")}</span>
+              </button>
+            </div>
+            <span className="hint">{t("passwordHint")}</span>
+            {errorText("password")}
           </div>
         </div>
         <div className="actions">
           <button className="button" type="submit" disabled={busy}>
             {mode === "create" ? <Send size={18} aria-hidden /> : <Save size={18} aria-hidden />}
-            {busy ? "Saving..." : mode === "create" ? "Submit registration" : "Save changes"}
+            {busy ? t("saving") : mode === "create" ? t("submitRegistration") : t("saveChanges")}
           </button>
           <span className="meta">
-            <FileUp size={15} aria-hidden /> Documents are attached to this registration record.
+            <FileUp size={15} aria-hidden /> {t("attachedDocuments")}
           </span>
         </div>
       </form>
     </section>
   );
+}
+
+function validateClientForm(formData: FormData, translate: (message: string) => string): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const validation = validateRegistrationInput(registrationInputFromFormData(formData));
+
+  if (!validation.ok) {
+    Object.assign(
+      errors,
+      Object.fromEntries(Object.entries(validation.errors).map(([field, message]) => [field, translate(message)])),
+    );
+  }
+
+  const files = formData.getAll("documents").filter((item): item is File => item instanceof File && item.size > 0);
+  if (files.length === 0 && formData.get("documentMode") !== "append") {
+    errors.documents = translate("Upload at least one supporting document.");
+  }
+
+  for (const file of files) {
+    const fileError = assertAllowedDocument(file);
+    if (fileError) {
+      errors.documents = `${file.name}: ${translate(fileError)}`;
+      break;
+    }
+  }
+
+  return errors;
 }

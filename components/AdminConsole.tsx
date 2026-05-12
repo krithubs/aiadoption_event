@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { Download, FileText, LogOut, RefreshCw, Search } from "lucide-react";
 import type { PublicRegistration, RegistrationStatus } from "@/lib/types";
 import { Modal, type ModalState } from "./Modal";
+import { CustomDropdown } from "./CustomDropdown";
+import { useI18n } from "./LanguageProvider";
 
 const statusOptions: RegistrationStatus[] = ["submitted", "reviewing", "approved"];
 
 export function AdminConsole() {
   const router = useRouter();
+  const { t } = useI18n();
   const [registrations, setRegistrations] = useState<PublicRegistration[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [query, setQuery] = useState("");
@@ -71,7 +74,7 @@ export function AdminConsole() {
 
     if (!response.ok) {
       setModal({
-        title: "Status not updated",
+        title: t("statusNotUpdated"),
         message: payload.error || "Please try again.",
         kind: "error",
       });
@@ -80,7 +83,7 @@ export function AdminConsole() {
 
     setRegistrations((current) => current.map((item) => (item.id === payload.registration.id ? payload.registration : item)));
     setModal({
-      title: "Status updated",
+      title: t("statusUpdated"),
       message: `${payload.registration.fullName} is now marked ${payload.registration.status}.`,
       kind: "success",
     });
@@ -89,8 +92,8 @@ export function AdminConsole() {
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
     setModal({
-      title: "Signed out",
-      message: "Admin session has been closed.",
+      title: t("signedOut"),
+      message: t("sessionClosed"),
       kind: "success",
     });
     setTimeout(() => router.push("/admin/login"), 450);
@@ -107,17 +110,19 @@ export function AdminConsole() {
       <section className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-header">
           <div>
-            <h2>Review dashboard</h2>
-            <p className="meta">{registrations.length} total submissions</p>
+            <h2>{t("reviewDashboard")}</h2>
+            <p className="meta">
+              {registrations.length} {t("totalSubmissions")}
+            </p>
           </div>
           <div className="actions" style={{ marginTop: 0 }}>
             <button className="ghost-button" type="button" onClick={load} disabled={busy}>
               <RefreshCw size={18} aria-hidden />
-              Refresh
+              {t("refresh")}
             </button>
             <button className="danger-button" type="button" onClick={logout}>
               <LogOut size={18} aria-hidden />
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </div>
@@ -127,8 +132,8 @@ export function AdminConsole() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>Attendee queue</h2>
-              <p className="meta">Search by name, email, company, code, ticket, or status.</p>
+              <h2>{t("attendeeQueue")}</h2>
+              <p className="meta">{t("queueSearchHelp")}</p>
             </div>
           </div>
           <div className="panel-body">
@@ -138,13 +143,14 @@ export function AdminConsole() {
                 aria-label="Search registrations"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search registrations"
+                placeholder={t("searchRegistrations")}
               />
             </div>
-            {busy ? <div className="empty-state">Loading registrations...</div> : null}
-            {!busy && filtered.length === 0 ? <div className="empty-state">No registrations match this view.</div> : null}
-            <div className="list">
-              {filtered.map((registration) => (
+            {busy ? <AdminListSkeleton /> : null}
+            {!busy && filtered.length === 0 ? <div className="empty-state">{t("noRegistrations")}</div> : null}
+            {!busy ? (
+              <div className="list">
+                {filtered.map((registration) => (
                 <button
                   className={`list-button ${selected?.id === registration.id ? "active" : ""}`}
                   type="button"
@@ -160,84 +166,82 @@ export function AdminConsole() {
                     {registration.organization} · {registration.ticketType}
                   </div>
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </section>
 
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>Attendee profile</h2>
-              <p className="meta">{selected ? selected.referenceCode : "Select a submission"}</p>
+              <h2>{t("attendeeProfile")}</h2>
+              <p className="meta">{selected ? selected.referenceCode : t("selectSubmission")}</p>
             </div>
             {selected ? (
               <a className="button" href={`/api/admin/tag/${selected.id}`}>
                 <Download size={18} aria-hidden />
-                Tag PDF
+                {t("tagPdf")}
               </a>
             ) : null}
           </div>
           <div className="panel-body">
-            {!selected ? (
-              <div className="empty-state">Select a registration to review details.</div>
+            {busy ? (
+              <AdminDetailSkeleton />
+            ) : !selected ? (
+              <div className="empty-state">{t("selectToReview")}</div>
             ) : (
               <>
                 <div className="summary-list">
                   <div className="summary-row">
-                    <span>Name</span>
+                    <span>{t("name")}</span>
                     <strong>{selected.fullName}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Email</span>
+                    <span>{t("email")}</span>
                     <strong>{selected.email}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Phone</span>
+                    <span>{t("phone")}</span>
                     <strong>{selected.phone}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Organization</span>
+                    <span>{t("organization")}</span>
                     <strong>{selected.organization}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Job title</span>
+                    <span>{t("jobTitle")}</span>
                     <strong>{selected.jobTitle}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Ticket</span>
+                    <span>{t("ticket")}</span>
                     <strong>{selected.ticketType}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Dietary</span>
-                    <strong>{selected.dietaryNeeds || "None"}</strong>
+                    <span>{t("dietary")}</span>
+                    <strong>{selected.dietaryNeeds || t("none")}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Accessibility</span>
-                    <strong>{selected.accessibilityNeeds || "None"}</strong>
+                    <span>{t("accessibility")}</span>
+                    <strong>{selected.accessibilityNeeds || t("none")}</strong>
                   </div>
                   <div className="summary-row">
-                    <span>Notes</span>
-                    <strong>{selected.notes || "None"}</strong>
+                    <span>{t("notes")}</span>
+                    <strong>{selected.notes || t("none")}</strong>
                   </div>
                 </div>
 
                 <div className="field" style={{ marginTop: 20 }}>
-                  <label htmlFor="status">Review status</label>
-                  <select
+                  <label htmlFor="status">{t("reviewStatus")}</label>
+                  <CustomDropdown
                     id="status"
                     value={selected.status}
-                    onChange={(event) => updateStatus(event.target.value as RegistrationStatus)}
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                    options={statusOptions.map((status) => ({ value: status, label: status }))}
+                    onChange={(value) => updateStatus(value as RegistrationStatus)}
+                  />
                 </div>
 
-                <h3 style={{ marginTop: 24 }}>Supporting documents</h3>
+                <h3 style={{ marginTop: 24 }}>{t("supportingDocuments")}</h3>
                 <div className="documents">
                   {selected.documents.map((document) => (
                     <div className="document-row" key={document.id}>
@@ -249,7 +253,7 @@ export function AdminConsole() {
                       </div>
                       <a className="ghost-button" href={`/api/documents/${document.id}`}>
                         <FileText size={18} aria-hidden />
-                        Download
+                        {t("download")}
                       </a>
                     </div>
                   ))}
@@ -259,6 +263,33 @@ export function AdminConsole() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function AdminListSkeleton() {
+  return (
+    <div className="list" aria-label="Loading registrations">
+      {[0, 1, 2].map((item) => (
+        <div className="list-button skeleton-card" key={item}>
+          <div className="skeleton-line wide" />
+          <div className="skeleton-line medium" />
+          <div className="skeleton-line short" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdminDetailSkeleton() {
+  return (
+    <div className="summary-list" aria-label="Loading registration detail">
+      {[0, 1, 2, 3, 4, 5].map((item) => (
+        <div className="summary-row" key={item}>
+          <span className="skeleton-line short" />
+          <strong className="skeleton-line wide" />
+        </div>
+      ))}
     </div>
   );
 }

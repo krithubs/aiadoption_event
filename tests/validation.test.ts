@@ -19,10 +19,30 @@ describe("registration validation", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors).toMatchObject({
-        fullName: "Full name is required.",
-        email: "Enter a valid email address.",
+        fullName: "Enter the attendee full name.",
+        email: "Enter a valid email address, for example name@example.com.",
         password: "Password must be at least 8 characters.",
       });
+    }
+  });
+
+  it("requires phone numbers to be digits only", () => {
+    const result = validateRegistrationInput({
+      fullName: "Jane Senior",
+      email: "jane@example.com",
+      phone: "+66 81 234 5678",
+      organization: "CMD",
+      jobTitle: "Reviewer",
+      ticketType: "General",
+      dietaryNeeds: "",
+      accessibilityNeeds: "",
+      notes: "",
+      password: "strongpass123",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.phone).toBe("Phone must contain numbers only, 9 to 15 digits.");
     }
   });
 
