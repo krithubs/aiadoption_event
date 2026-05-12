@@ -6,6 +6,7 @@ import { Check, ChevronDown } from "lucide-react";
 type Option = {
   value: string;
   label: string;
+  tone?: "submitted" | "reviewing" | "approved";
 };
 
 type Props = {
@@ -25,6 +26,7 @@ export function CustomDropdown({ id, name, options, value, onChange, invalid, de
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value) || options[0];
+  const toneClass = selected.tone ? `dropdown-tone-${selected.tone}` : "";
 
   useEffect(() => {
     function closeOnOutsideClick(event: MouseEvent) {
@@ -39,7 +41,7 @@ export function CustomDropdown({ id, name, options, value, onChange, invalid, de
       {name ? <input type="hidden" name={name} value={selected.value} /> : null}
       <button
         id={dropdownId}
-        className={`dropdown-trigger ${invalid ? "invalid-field" : ""}`}
+        className={`dropdown-trigger ${toneClass} ${invalid ? "invalid-field" : ""}`}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -64,7 +66,7 @@ export function CustomDropdown({ id, name, options, value, onChange, invalid, de
             const isSelected = option.value === selected.value;
             return (
               <button
-                className={`dropdown-option ${isSelected ? "selected" : ""}`}
+                className={`dropdown-option ${option.tone ? `dropdown-tone-${option.tone}` : ""} ${isSelected ? "selected" : ""}`}
                 type="button"
                 role="option"
                 aria-selected={isSelected}

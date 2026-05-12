@@ -436,6 +436,42 @@ textarea {
   color: #ffffff;
 }
 
+.dropdown-trigger.dropdown-tone-submitted,
+.dropdown-option.dropdown-tone-submitted {
+  border-color: rgba(87, 214, 255, 0.4);
+  background: rgba(87, 214, 255, 0.12);
+  color: #c9f3ff;
+}
+
+.dropdown-trigger.dropdown-tone-reviewing,
+.dropdown-option.dropdown-tone-reviewing {
+  border-color: rgba(255, 207, 107, 0.46);
+  background: rgba(255, 207, 107, 0.14);
+  color: #ffe6a3;
+}
+
+.dropdown-trigger.dropdown-tone-approved,
+.dropdown-option.dropdown-tone-approved {
+  border-color: rgba(127, 240, 186, 0.46);
+  background: rgba(127, 240, 186, 0.14);
+  color: #b9ffd9;
+}
+
+.dropdown-option.dropdown-tone-submitted.selected,
+.dropdown-option.dropdown-tone-submitted:hover {
+  background: rgba(87, 214, 255, 0.22);
+}
+
+.dropdown-option.dropdown-tone-reviewing.selected,
+.dropdown-option.dropdown-tone-reviewing:hover {
+  background: rgba(255, 207, 107, 0.24);
+}
+
+.dropdown-option.dropdown-tone-approved.selected,
+.dropdown-option.dropdown-tone-approved:hover {
+  background: rgba(127, 240, 186, 0.24);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: #7f8fb6;

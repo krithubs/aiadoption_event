@@ -236,7 +236,7 @@ export function AdminConsole() {
                   <CustomDropdown
                     id="status"
                     value={selected.status}
-                    options={statusOptions.map((status) => ({ value: status, label: status }))}
+                    options={statusOptions.map((status) => ({ value: status, label: status, tone: status }))}
                     onChange={(value) => updateStatus(value as RegistrationStatus)}
                   />
                 </div>
