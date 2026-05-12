@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Search } from "lucide-react";
 import { Modal, type ModalState } from "./Modal";
@@ -16,6 +16,12 @@ export function LookupForm() {
   const [referenceError, setReferenceError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const normalizedReference = referenceCode.trim().toUpperCase();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const referenceFromUrl = params.get("ref");
+    if (referenceFromUrl) setReferenceCode(referenceFromUrl.trim().toUpperCase());
+  }, []);
 
   async function checkReference(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
