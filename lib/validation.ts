@@ -44,7 +44,7 @@ export function validateRegistrationInput(input: RegistrationInput): ValidationR
   else if (!/[A-Za-z]/.test(input.password) || !/\d/.test(input.password)) {
     errors.password = "Password must include at least one letter and one number.";
   }
-  if (input.dietaryNeeds.length > 120) errors.dietaryNeeds = "Dietary needs must be 120 characters or less.";
+  if (input.dietaryNeeds.length > 120) errors.dietaryNeeds = "Food allergies must be 120 characters or less.";
   if (input.accessibilityNeeds.length > 120) {
     errors.accessibilityNeeds = "Accessibility needs must be 120 characters or less.";
   }

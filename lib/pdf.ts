@@ -158,7 +158,7 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   drawSmallDetail(page, fonts, "Status", registration.status, badgeX + 252, top - 247, 60);
   drawSmallDetail(page, fonts, "Email", registration.email, badgeX + 36, top - 286, 145);
   drawSmallDetail(page, fonts, "Phone", registration.phone, badgeX + 200, top - 286, 100);
-  drawSmallDetail(page, fonts, "Dietary", registration.dietaryNeeds || "None", badgeX + 36, top - 325, 82);
+  drawSmallDetail(page, fonts, "Allergies", registration.dietaryNeeds || "None", badgeX + 36, top - 325, 82);
   drawSmallDetail(page, fonts, "Access", registration.accessibilityNeeds || "None", badgeX + 132, top - 325, 82);
   drawSmallDetail(page, fonts, "Docs", `${registration.documents.length}`, badgeX + 229, top - 325, 38);
 
