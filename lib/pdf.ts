@@ -2,11 +2,6 @@ import { degrees, PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PDFFont, PDFPage, RGB } from "pdf-lib";
 import type { PublicRegistration } from "./types";
 
-type FontSet = {
-  regular: PDFFont;
-  bold: PDFFont;
-};
-
 function hexColor(hex: string): RGB {
   const clean = hex.replace("#", "");
   return rgb(
@@ -73,11 +68,6 @@ function drawRotatedText(
   });
 }
 
-function drawSmallDetail(page: PDFPage, fonts: FontSet, label: string, value: string, x: number, y: number, width: number) {
-  drawText(page, label.toUpperCase(), x, y + 12, 5.8, fonts.bold, "#BBD0FF");
-  drawText(page, fit(value || "None", Math.floor(width / 5.2)), x, y, 7.3, fonts.bold, "#FFFFFF");
-}
-
 function drawBarcode(page: PDFPage, value: string, x: number, y: number, width: number, height: number, color = "#FFFFFF") {
   let seed = Array.from(value).reduce((sum, char) => sum + char.charCodeAt(0), 31);
   let cursor = x;
@@ -104,7 +94,6 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   const page = pdf.addPage([420, 620]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fonts = { regular, bold };
   const eventName = process.env.EVENT_NAME || "CMD AI Adoption Exam 2026";
   const eventDate = process.env.EVENT_DATE || "2026-05-12";
   const serial = registration.referenceCode.replace(/\D/g, "").slice(-2).padStart(2, "0");
@@ -114,6 +103,7 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
   const badgeH = 452;
   const top = badgeY + badgeH;
   const nameLines = wrap(registration.fullName, 15, 2);
+  const eventLines = wrap(eventName.replace(" 2026", ""), 12, 3);
 
   page.drawRectangle({ x: 0, y: 0, width: 420, height: 620, color: hexColor("#0A0A0C") });
 
@@ -137,39 +127,32 @@ export async function makeNameTagPdf(registration: PublicRegistration): Promise<
     borderWidth: 1.2,
   });
   page.drawRectangle({ x: badgeX, y: badgeY + 306, width: badgeW, height: 146, color: hexColor("#151CFF"), opacity: 0.95 });
-  page.drawRectangle({ x: badgeX, y: badgeY + 206, width: badgeW, height: 100, color: hexColor("#1117DB"), opacity: 0.95 });
-  page.drawRectangle({ x: badgeX, y: badgeY, width: badgeW, height: 206, color: hexColor("#070BC0"), opacity: 0.98 });
+  page.drawRectangle({ x: badgeX, y: badgeY + 200, width: badgeW, height: 106, color: hexColor("#1117DB"), opacity: 0.95 });
+  page.drawRectangle({ x: badgeX, y: badgeY, width: badgeW, height: 200, color: hexColor("#070BC0"), opacity: 0.98 });
 
   drawBarcode(page, registration.referenceCode, badgeX + 36, top - 73, badgeW - 72, 38);
   page.drawRectangle({ x: badgeX, y: top - 93, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
 
   nameLines.forEach((line, index) => {
-    drawText(page, line, badgeX + 36, top - 122 - index * 26, 25, regular, "#FFFFFF");
+    drawText(page, line, badgeX + 36, top - 125 - index * 28, 27, regular, "#FFFFFF");
   });
-  drawText(page, serial, badgeX + badgeW - 68, top - 124, 25, regular, "#FFFFFF");
+  drawText(page, serial, badgeX + badgeW - 68, top - 126, 26, regular, "#FFFFFF");
 
-  page.drawRectangle({ x: badgeX, y: top - 166, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
-  drawText(page, fit(registration.jobTitle, 25), badgeX + 36, top - 190, 11.5, regular, "#D9E1FF");
-  drawText(page, "*", badgeX + badgeW - 60, top - 195, 24, bold, "#F28A2F");
-  page.drawRectangle({ x: badgeX, y: top - 214, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
+  page.drawRectangle({ x: badgeX, y: top - 176, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
+  drawText(page, fit(registration.organization, 28), badgeX + 36, top - 203, 13, regular, "#D9E1FF");
+  drawText(page, registration.ticketType.toUpperCase(), badgeX + badgeW - 98, top - 203, 13, bold, "#FFFFFF");
+  drawText(page, "*", badgeX + badgeW - 54, top - 209, 24, bold, "#F28A2F");
+  page.drawRectangle({ x: badgeX, y: top - 226, width: badgeW, height: 1, color: hexColor("#7385FF"), opacity: 0.7 });
 
-  drawSmallDetail(page, fonts, "Organization", registration.organization, badgeX + 36, top - 247, 120);
-  drawSmallDetail(page, fonts, "Ticket", registration.ticketType, badgeX + 177, top - 247, 65);
-  drawSmallDetail(page, fonts, "Status", registration.status, badgeX + 252, top - 247, 60);
-  drawSmallDetail(page, fonts, "Email", registration.email, badgeX + 36, top - 286, 145);
-  drawSmallDetail(page, fonts, "Phone", registration.phone, badgeX + 200, top - 286, 100);
-  drawSmallDetail(page, fonts, "Allergies", registration.dietaryNeeds || "None", badgeX + 36, top - 325, 82);
-  drawSmallDetail(page, fonts, "Access", registration.accessibilityNeeds || "None", badgeX + 132, top - 325, 82);
-  drawSmallDetail(page, fonts, "Docs", `${registration.documents.length}`, badgeX + 229, top - 325, 38);
+  eventLines.forEach((line, index) => {
+    drawText(page, line.toUpperCase(), badgeX + 36, badgeY + 125 - index * 43, 42, regular, "#FFFFFF");
+  });
+  drawText(page, "2026", badgeX + 36, badgeY + 23, 18, bold, "#C9D4FF");
+  drawText(page, "L", badgeX + 229, badgeY + 70, 52, bold, "#FFFFFF");
+  page.drawRectangle({ x: badgeX + 257, y: badgeY + 83, width: 32, height: 8, color: hexColor("#FFFFFF") });
 
-  drawText(page, "CMD AI", badgeX + 36, badgeY + 89, 43, regular, "#FFFFFF");
-  drawText(page, "ADOPTION", badgeX + 36, badgeY + 49, 42, regular, "#FFFFFF");
-  drawText(page, "EXAM 2026", badgeX + 36, badgeY + 25, 16, bold, "#C9D4FF");
-  drawText(page, "L", badgeX + 229, badgeY + 50, 52, bold, "#FFFFFF");
-  page.drawRectangle({ x: badgeX + 257, y: badgeY + 63, width: 32, height: 8, color: hexColor("#FFFFFF") });
-
-  drawText(page, fit(eventName, 34), badgeX + 36, badgeY + 12, 6.8, regular, "#BBD0FF");
-  drawText(page, eventDate, badgeX + 247, badgeY + 12, 6.8, regular, "#BBD0FF");
+  drawText(page, registration.referenceCode, badgeX + 36, badgeY + 12, 7.4, regular, "#BBD0FF");
+  drawText(page, eventDate, badgeX + 247, badgeY + 12, 7.4, regular, "#BBD0FF");
 
   const bytes = await pdf.save();
   return Buffer.from(bytes);
